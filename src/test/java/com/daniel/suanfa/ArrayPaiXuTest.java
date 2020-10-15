@@ -214,7 +214,8 @@ public class ArrayPaiXuTest {
 	}
 
 	// 以选定值为轴进行左右分区, 小于选定值的在左边, 大于选定值的在右边, 选定值放在中间
-	// 时间复杂度O(N*N)
+	// 平均时间复杂度O(N*logN)
+	// 最大时间复杂度O(N*N)
 	/**
 	 * 
 	 * @Title: quickSort
@@ -279,5 +280,15 @@ public class ArrayPaiXuTest {
 
 		// 递归调用 快速排序右侧数组
 		quickSort(arr, j + 1, rigth);
+	}
+
+
+	// 快速选择
+	// 快速选择-分区 && 二分查找的结合
+	@Test
+	public void testQuickSelect() {
+		// 找出地6小的元素
+		int[] quickSelect = new int[] { 6, 1, 12, 7, 4, 3, 9, 5, 10, 8 };
+
 	}
 }
