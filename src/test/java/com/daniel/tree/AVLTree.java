@@ -12,7 +12,7 @@ public class AVLTree<T extends Comparable<T>> {
     }
 
     /*
-     * 获取树的高度
+     * 获取树的高度[用于获取左右子树的高度,进而判断BF因子是否大于1]
      */
     private int height(AVLTreeNode<T> tree) {
         if (tree != null)
@@ -173,19 +173,25 @@ public class AVLTree<T extends Comparable<T>> {
     }
 
     /*
-     * LL：左左对应的情况(右旋-顺时针旋转)。
-     *
+     * LL：左左对应的情况(右旋-顺时针旋转)
+     * 旋转轴: k2.left 结点[同时也是旋转后的新树根结点]
+     * 对传入的 树k2 进行右旋操作:
+     * TreeNode nRoot = k2.left;
+     * k2.left = nRoot.right;
+     * nRoot.right = k2;
      * 返回值：旋转后的根节点
      */
     private AVLTreeNode<T> leftLeftRotation(AVLTreeNode<T> k2) {
+        // 右旋后的根结点K1
         AVLTreeNode<T> k1;
 
         k1 = k2.left;
         k2.left = k1.right;
         k1.right = k2;
 
+        // 旋转后重新计算高度
         k2.height = max(height(k2.left), height(k2.right)) + 1;
-        k1.height = max(height(k1.left), k2.height) + 1;
+        k1.height = max(height(k1.left), k2.height) + 1; // 新树根结点k1的层高
 
         return k1;
     }
@@ -196,37 +202,47 @@ public class AVLTree<T extends Comparable<T>> {
      * 返回值：旋转后的根节点
      */
     private AVLTreeNode<T> rightRightRotation(AVLTreeNode<T> k1) {
-        AVLTreeNode<T> k2;
+        // 对 Tree k1 结点进行左旋操作,步骤如下
+        // 左旋后新的 Tree Root结点为 k1.right 结点
+        AVLTreeNode<T> k2; // 暂存新root结点的 k2
 
-        k2 = k1.right;
-        k1.right = k2.left;
-        k2.left = k1;
+        k2 = k1.right; // k1.right为新的root结点
+        k1.right = k2.left; // k2的左孩子, 挪移到k1的左孩子上
+        k2.left = k1; // k2的左孩子设置为k1--完成左旋操作
 
+        // 重新计算左右子树的高度
         k1.height = max(height(k1.left), height(k1.right)) + 1;
         k2.height = max(height(k2.right), k1.height) + 1;
 
+        // 返回新的根结点k2
         return k2;
     }
 
     /*
      * LR：左右对应的情况(先左旋转,再右旋转)。
-     *
+     * 先对k3.left左子树进行一次左旋,此时你会发现k3就会变成一个LL失衡的树;
+     * 再对新的k3进行一次LL右旋操作即可.
      * 返回值：旋转后的根节点
      */
     private AVLTreeNode<T> leftRightRotation(AVLTreeNode<T> k3) {
+        // 先对k3左子树进行一次左旋, 产生的新左子树树根结点
         k3.left = rightRightRotation(k3.left);
 
+        // 再对新的树k3进行右旋操作
         return leftLeftRotation(k3);
     }
 
     /*
      * RL：右左对应的情况(先右旋转,再左旋转)。
-     *
+     * 先对k1.right右子树进行一次右旋,此时新的k1就会变成一个RR失衡的树;
+     * 在对新的k1进行一次左旋操作即可.
      * 返回值：旋转后的根节点
      */
     private AVLTreeNode<T> rightLeftRotation(AVLTreeNode<T> k1) {
+        // 先对k1的右子树进行一次右旋, 产生的新右子树树根结点
         k1.right = leftLeftRotation(k1.right);
 
+        // 再对新的树k1进行左旋操作
         return rightRightRotation(k1);
     }
 
@@ -248,37 +264,70 @@ public class AVLTree<T extends Comparable<T>> {
                 return null;
             }
         } else {
+            // 插入的结点键值KEY 与 tree的键值比对
             int cmp = key.compareTo(tree.key);
 
-            if (cmp < 0) {    // 应该将key插入到"tree的左子树"的情况
+            // 应该将key插入到"tree的左子树"的情况
+            if (cmp < 0) {
+                // 插入到左孩子结点上[有可能是左子树上,也有可能是右子树上]
+                // 所以后续产生两种情形: LL 和 LR
                 tree.left = insert(tree.left, key);
                 // 插入节点后，若AVL树失去平衡，则进行相应的调节。
+                // 插入新结点key后,导致tree的左右子树高度差为2[大于1,失衡]
+                // 所以失衡的树根α结点为当前的tree结点
                 if (height(tree.left) - height(tree.right) == 2) {
-                    if (key.compareTo(tree.left.key) < 0)
+                    // 原来的BF<2, 插入后左子树高度大于右子树高度 && 插入的KEY在tree左孩子结点的左子树上 [符合LL定义-单次右旋]
+                    if (key.compareTo(tree.left.key) < 0) {
+                        // LL右旋的操作如下: 顺时针旋转
+                        // 旋转轴为 tree.left 结点
+                        // 旋转后新的根结点也是 tree.left 结点
+                        // Node nRoot = tree.left;
+                        // tree.left = nRoot.right;
+                        // nRoot.right = tree;
+                        // 旋转后返回根结点
                         tree = leftLeftRotation(tree);
-                    else
+                    }
+                    // 插入的key在tree左孩子结点的右子树上 [符合LR定义-左右双旋]
+                    else {
+                        // 旋转后返回根结点
+                        // 先对tree.left左子树进行左旋操作,产生一个新的tree,此时的tree是LL失衡的
+                        // 再对新的tree进行LL右旋操作即可
                         tree = leftRightRotation(tree);
+                    }
                 }
-            } else if (cmp > 0) {    // 应该将key插入到"tree的右子树"的情况
+            }
+
+            // 应该将key插入到"tree的右子树"的情况
+            // 以下情况类似于LL及LR
+            else if (cmp > 0) {
                 tree.right = insert(tree.right, key);
                 // 插入节点后，若AVL树失去平衡，则进行相应的调节。
                 if (height(tree.right) - height(tree.left) == 2) {
-                    if (key.compareTo(tree.right.key) > 0)
+                    if (key.compareTo(tree.right.key) > 0) {
+                        // 左旋操作
                         tree = rightRightRotation(tree);
-                    else
+                    } else {
+                        // 先对tree.right右子树进行一次右旋, 产生一个新的LL失衡的tree
+                        // 再对新的tree进行RR左旋操作即可
                         tree = rightLeftRotation(tree);
+                    }
                 }
-            } else {    // cmp==0
+            }
+
+            // cmp==0
+            else {
                 System.out.println("添加失败：不允许添加相同的节点！");
             }
         }
 
+        // 更新结点高度
         tree.height = max(height(tree.left), height(tree.right)) + 1;
 
         return tree;
     }
 
     public void insert(T key) {
+        // 每次新插入结点后返回根节点mRoot
         mRoot = insert(mRoot, key);
     }
 
